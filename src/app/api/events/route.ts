@@ -86,8 +86,9 @@ export async function GET(request: NextRequest) {
       query.status = ContentStatus.APPROVED;
       query.visibility = VisibilityStatus.PUBLIC;
     } else if (!isAdmin) {
+      const existingAnd = Array.isArray(query.$and) ? query.$and : [];
       query.$and = [
-        ...(query.$and || []),
+        ...existingAnd,
         {
           $or: [
             { status: ContentStatus.APPROVED },

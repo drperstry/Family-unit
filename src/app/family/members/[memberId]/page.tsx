@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { Header, Sidebar, MobileNav, MinimalFooter } from '@/components/layout';
-import { Button, Card, Avatar, Badge, Loading, Tabs } from '@/components/ui';
+import { Button, Card, Avatar, Badge, Loading, SimpleTabs } from '@/components/ui';
 import {
   ArrowLeft,
   Edit,
@@ -209,7 +209,7 @@ export default function MemberDetailPage() {
           </Card>
 
           {/* Tabs */}
-          <Tabs
+          <SimpleTabs
             tabs={[
               { id: 'overview', label: 'Overview' },
               { id: 'family', label: 'Family' },

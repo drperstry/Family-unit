@@ -1,7 +1,22 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
-import { Approval as ApprovalType, EntityType } from '@/types';
+import mongoose, { Schema, Document, Model, Types } from 'mongoose';
+import { EntityType } from '@/types';
 
-export interface ApprovalDocument extends Omit<ApprovalType, '_id'>, Document {}
+export interface ApprovalDocument extends Document {
+  familyId: Types.ObjectId;
+  entityId: Types.ObjectId;
+  entityType: EntityType | 'family' | 'member';
+  requesterId: Types.ObjectId;
+  reviewerId?: Types.ObjectId;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedAt: Date;
+  reviewedAt?: Date;
+  comments?: string;
+  changes?: Array<{
+    field: string;
+    oldValue: unknown;
+    newValue: unknown;
+  }>;
+}
 
 const ApprovalChangeSchema = new Schema({
   field: { type: String, required: true },

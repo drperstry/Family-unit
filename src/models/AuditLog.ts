@@ -1,7 +1,21 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
-import { AuditLog as AuditLogType, AuditAction, UserRole } from '@/types';
+import mongoose, { Schema, Document, Model, Types } from 'mongoose';
+import { AuditAction, UserRole } from '@/types';
 
-export interface AuditLogDocument extends Omit<AuditLogType, '_id'>, Document {}
+export interface AuditLogDocument extends Document {
+  familyId?: Types.ObjectId;
+  actorId: Types.ObjectId;
+  actorRole: UserRole;
+  action: AuditAction;
+  entityId?: Types.ObjectId;
+  entityType?: string;
+  targetUserId?: Types.ObjectId;
+  details: Record<string, unknown>;
+  ipAddress?: string;
+  userAgent?: string;
+  sessionId?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 const AuditLogSchema = new Schema<AuditLogDocument>({
   familyId: {

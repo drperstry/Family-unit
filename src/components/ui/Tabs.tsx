@@ -133,3 +133,55 @@ export function TabsContent({ value, children, className }: TabsContentProps) {
     </div>
   );
 }
+
+// Simple Tabs - A simplified tabs component with array-based interface
+export interface SimpleTab {
+  id: string;
+  label: string;
+  icon?: React.ComponentType<{ className?: string }>;
+}
+
+interface SimpleTabsProps {
+  tabs: SimpleTab[];
+  activeTab: string;
+  onChange: (tabId: string) => void;
+  className?: string;
+}
+
+export function SimpleTabs({ tabs, activeTab, onChange, className }: SimpleTabsProps) {
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-x-auto',
+        className
+      )}
+      role="tablist"
+    >
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab.id;
+        const Icon = tab.icon;
+
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onChange(tab.id)}
+            className={cn(
+              'flex-shrink-0 flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200',
+              'focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2',
+              'touch-manipulation whitespace-nowrap',
+              isActive
+                ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            )}
+          >
+            {Icon && <Icon className="w-4 h-4" />}
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

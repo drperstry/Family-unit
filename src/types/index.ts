@@ -222,19 +222,33 @@ export interface FamilyMember extends BaseDocument, SoftDeletable, Auditable {
   firstName: string;
   lastName: string;
   displayName?: string;
+  nickname?: string;
   gender: Gender;
   dateOfBirth?: Date;
   dateOfDeath?: Date;
+  // Aliases for easier access
+  birthDate?: Date;
+  deathDate?: Date;
   isDeceased: boolean;
   photo?: string;
+  profileImage?: string; // Alias for photo
   bio?: string;
   parentId?: string;
+  secondParentId?: string;
   spouseId?: string;
   childrenIds: string[];
   generation: number;
   lineage: string[];
   position: TreePosition;
   contactDetails?: ContactDetails;
+  contactInfo?: ContactDetails; // Alias for contactDetails
+  // Additional profile fields
+  occupation?: string;
+  birthPlace?: string;
+  location?: {
+    city?: string;
+    country?: string;
+  };
   achievements?: string[];
   role: 'admin' | 'member' | 'guest';
   joinedAt?: Date;

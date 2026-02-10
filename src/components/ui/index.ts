@@ -31,7 +31,8 @@ export { Modal, ConfirmDialog } from './Modal';
 export type { ModalProps } from './Modal';
 
 // Tabs
-export { Tabs, TabsList, TabsTrigger, TabsContent } from './Tabs';
+export { Tabs, TabsList, TabsTrigger, TabsContent, SimpleTabs } from './Tabs';
+export type { SimpleTab } from './Tabs';
 
 // Loading
 export {

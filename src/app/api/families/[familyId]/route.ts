@@ -65,7 +65,7 @@ export async function GET(
     const familyData = family.toObject();
 
     if (!isFamilyMember && user?.role !== UserRole.SYSTEM_ADMIN) {
-      delete familyData.settings;
+      delete (familyData as { settings?: unknown }).settings;
     }
 
     return successResponse({

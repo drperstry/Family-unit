@@ -9,7 +9,7 @@ export interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
   src?: string | null;
   alt?: string;
   name?: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   status?: 'online' | 'offline' | 'away' | 'busy';
 }
 
@@ -30,6 +30,7 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
       md: 'w-10 h-10 text-base',
       lg: 'w-14 h-14 text-lg',
       xl: 'w-20 h-20 text-xl',
+      '2xl': 'w-28 h-28 text-2xl',
     };
 
     const statusSizes = {
@@ -38,6 +39,7 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
       md: 'w-2.5 h-2.5',
       lg: 'w-3 h-3',
       xl: 'w-4 h-4',
+      '2xl': 'w-5 h-5',
     };
 
     const statusColors = {
@@ -126,6 +128,7 @@ const AvatarGroup = React.forwardRef<HTMLDivElement, AvatarGroupProps>(
       md: '-ml-3',
       lg: '-ml-4',
       xl: '-ml-5',
+      '2xl': '-ml-6',
     };
 
     return (

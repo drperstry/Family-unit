@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Header, Sidebar, MobileNav, MinimalFooter } from '@/components/layout';
-import { Button, Card, Input, Select, Tabs, Loading, Avatar } from '@/components/ui';
+import { Button, Card, Input, Select, SimpleTabs, Loading, Avatar } from '@/components/ui';
 import {
   Settings,
   Shield,
@@ -45,7 +45,7 @@ export default function SettingsPage() {
     name: 'Johnson Family',
     description: 'A place for our family to connect and share memories.',
     visibility: VisibilityStatus.PRIVATE,
-    status: FamilyStatus.APPROVED,
+    status: FamilyStatus.ACTIVE,
     joinPolicy: 'approval',
     contentModeration: true,
     allowGuestViewing: false,
@@ -153,7 +153,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Tabs */}
-          <Tabs
+          <SimpleTabs
             tabs={[
               { id: 'general', label: 'General', icon: Settings },
               { id: 'privacy', label: 'Privacy', icon: Shield },
@@ -241,7 +241,7 @@ export default function SettingsPage() {
                     className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   >
                     <option value={VisibilityStatus.PRIVATE}>Private - Only family members can view</option>
-                    <option value={VisibilityStatus.FAMILY}>Family - Visible to approved family members</option>
+                    <option value={VisibilityStatus.FAMILY_ONLY}>Family - Visible to approved family members</option>
                     <option value={VisibilityStatus.PUBLIC}>Public - Anyone can view (requires approval)</option>
                   </select>
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">

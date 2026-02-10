@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Header } from '@/components/layout';
-import { Button, Card, Badge, Loading, Tabs, Avatar } from '@/components/ui';
+import { Button, Card, Badge, Loading, SimpleTabs, Avatar } from '@/components/ui';
 import {
   Shield,
   Users,
@@ -325,7 +325,7 @@ export default function AdminPage() {
           </div>
 
           {/* Tabs */}
-          <Tabs
+          <SimpleTabs
             tabs={[
               { id: 'overview', label: 'Overview' },
               { id: 'approvals', label: `Approvals (${stats.pendingApprovals})` },
