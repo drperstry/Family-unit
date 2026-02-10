@@ -36,6 +36,7 @@ export { Tabs, TabsList, TabsTrigger, TabsContent } from './Tabs';
 // Loading
 export {
   Spinner,
+  Spinner as Loading,
   LoadingOverlay,
   LoadingCard,
   LoadingTable,
