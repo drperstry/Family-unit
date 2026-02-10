@@ -159,9 +159,9 @@ export default function AdminPage() {
       ]);
 
       setFamilies([
-        { _id: 'f1', name: 'Johnson Family', status: FamilyStatus.APPROVED, memberCount: 12, adminEmail: 'john@example.com', visibility: 'public', createdAt: new Date(Date.now() - 2592000000).toISOString() },
+        { _id: 'f1', name: 'Johnson Family', status: FamilyStatus.ACTIVE, memberCount: 12, adminEmail: 'john@example.com', visibility: 'public', createdAt: new Date(Date.now() - 2592000000).toISOString() },
         { _id: 'f2', name: 'Williams Family', status: FamilyStatus.PENDING, memberCount: 8, adminEmail: 'james@example.com', visibility: 'private', createdAt: new Date(Date.now() - 1296000000).toISOString() },
-        { _id: 'f3', name: 'Brown Family', status: FamilyStatus.APPROVED, memberCount: 5, adminEmail: 'michael@example.com', visibility: 'private', createdAt: new Date(Date.now() - 5184000000).toISOString() },
+        { _id: 'f3', name: 'Brown Family', status: FamilyStatus.ACTIVE, memberCount: 5, adminEmail: 'michael@example.com', visibility: 'private', createdAt: new Date(Date.now() - 5184000000).toISOString() },
         { _id: 'f4', name: 'Chen Family', status: FamilyStatus.PENDING, memberCount: 2, adminEmail: 'michelle@example.com', visibility: 'public', createdAt: new Date(Date.now() - 86400000).toISOString() },
       ]);
     } catch (error) {
@@ -609,7 +609,7 @@ export default function AdminPage() {
                         </td>
                         <td className="px-4 py-3">
                           <Badge
-                            variant={f.status === FamilyStatus.APPROVED ? 'success' : f.status === FamilyStatus.REJECTED ? 'danger' : 'warning'}
+                            variant={f.status === FamilyStatus.ACTIVE ? 'success' : f.status === FamilyStatus.SUSPENDED ? 'danger' : 'warning'}
                             size="sm"
                             className="capitalize"
                           >
