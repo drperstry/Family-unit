@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { Types } from 'mongoose';
 import connectDB from '@/lib/db';
 import { AuditLog } from '@/models/AuditLog';
 import { Family } from '@/models/Family';
@@ -98,16 +99,19 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Enrich logs with family info if system admin
-    let enrichedLogs = logs;
+    let enrichedLogs: unknown[] = logs;
     if (user.role === UserRole.SYSTEM_ADMIN) {
-      const familyIds = [...new Set(logs.map((l) => l.familyId?.toString()).filter(Boolean))];
-      const families = await Family.find({ _id: { $in: familyIds } }).select('name slug');
+      const familyIdStrings = logs
+        .map((l) => l.familyId?.toString())
+        .filter((id): id is string => !!id);
+      const uniqueFamilyIds = [...new Set(familyIdStrings)].map(id => new Types.ObjectId(id));
+      const families = await Family.find({ _id: { $in: uniqueFamilyIds } }).select('name slug');
       const familyMap = new Map(families.map((f) => [f._id.toString(), f]));
 
       enrichedLogs = logs.map((log) => {
-        const logObj = log.toObject();
+        const logObj = log.toObject() as Record<string, unknown>;
         if (log.familyId) {
-          (logObj as Record<string, unknown>).family = familyMap.get(log.familyId.toString());
+          logObj.family = familyMap.get(log.familyId.toString());
         }
         return logObj;
       });
