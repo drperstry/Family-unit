@@ -190,8 +190,8 @@ export async function POST(request: NextRequest) {
     // If public, create approval request
     if (familyVisibility === VisibilityStatus.PUBLIC) {
       await Approval.create({
-        familyId: family._id,
-        entityId: family._id,
+        familyId: family._id.toString(),
+        entityId: family._id.toString(),
         entityType: 'family',
         requesterId: user._id,
         status: 'pending',
