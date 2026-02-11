@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
     if (requiresApproval) {
       await Approval.create({
         familyId,
-        entityId: event._id,
+        entityId: event._id.toString(),
         entityType: EntityType.EVENT,
         requesterId: user._id,
         status: 'pending',
