@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
       const familyMap = new Map(families.map((f) => [f._id.toString(), f]));
 
       enrichedLogs = logs.map((log) => {
-        const logObj = log.toObject() as Record<string, unknown>;
+        const logObj = log.toObject() as unknown as Record<string, unknown>;
         if (log.familyId) {
           logObj.family = familyMap.get(log.familyId.toString());
         }
