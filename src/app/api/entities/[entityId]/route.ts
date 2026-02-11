@@ -208,8 +208,8 @@ export async function DELETE(
     // Archive the document
     await SoftDeleteArchive.create({
       originalCollection: 'Entity',
-      originalId: entity._id,
-      familyId: entity.familyId,
+      originalId: entity._id.toString(),
+      familyId: entity.familyId.toString(),
       data: entity.toObject(),
       deletedBy: user._id,
       reason,
