@@ -210,7 +210,7 @@ export async function DELETE(
       originalCollection: 'Entity',
       originalId: entity._id.toString(),
       familyId: entity.familyId.toString(),
-      data: entity.toObject(),
+      data: entity.toObject() as unknown as Record<string, unknown>,
       deletedBy: user._id,
       reason,
       expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days
