@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { Types } from 'mongoose';
 import connectDB from '@/lib/db';
 import { Approval } from '@/models/Approval';
 import { Family } from '@/models/Family';
@@ -176,7 +177,7 @@ export async function POST(request: NextRequest) {
 
     // Update approval status
     approval.status = action === 'approve' ? 'approved' : 'rejected';
-    approval.reviewerId = user._id;
+    approval.reviewerId = new Types.ObjectId(user._id);
     approval.reviewedAt = new Date();
     approval.comments = comments;
     await approval.save();
