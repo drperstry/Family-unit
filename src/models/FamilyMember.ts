@@ -23,6 +23,11 @@ const TreePositionSchema = new Schema({
   level: { type: Number, default: 0 },
 }, { _id: false });
 
+const LocationSchema = new Schema({
+  city: String,
+  country: String,
+}, { _id: false });
+
 const FamilyMemberSchema = new Schema<FamilyMemberDocument>({
   familyId: {
     type: Schema.Types.ObjectId,
@@ -53,6 +58,11 @@ const FamilyMemberSchema = new Schema<FamilyMemberDocument>({
     trim: true,
     maxlength: 100,
   },
+  nickname: {
+    type: String,
+    trim: true,
+    maxlength: 50,
+  },
   gender: {
     type: String,
     enum: Object.values(Gender),
@@ -70,7 +80,24 @@ const FamilyMemberSchema = new Schema<FamilyMemberDocument>({
     type: String,
     maxlength: 2000,
   },
+  // Additional profile fields
+  occupation: {
+    type: String,
+    trim: true,
+    maxlength: 100,
+  },
+  birthPlace: {
+    type: String,
+    trim: true,
+    maxlength: 200,
+  },
+  location: LocationSchema,
   parentId: {
+    type: Schema.Types.ObjectId,
+    ref: 'FamilyMember',
+    index: true,
+  },
+  secondParentId: {
     type: Schema.Types.ObjectId,
     ref: 'FamilyMember',
     index: true,
@@ -160,6 +187,23 @@ FamilyMemberSchema.virtual('age').get(function() {
     (endDate.getTime() - this.dateOfBirth.getTime()) / (365.25 * 24 * 60 * 60 * 1000)
   );
   return age;
+});
+
+// Alias virtuals for backwards compatibility
+FamilyMemberSchema.virtual('profileImage').get(function() {
+  return this.photo;
+});
+
+FamilyMemberSchema.virtual('birthDate').get(function() {
+  return this.dateOfBirth;
+});
+
+FamilyMemberSchema.virtual('deathDate').get(function() {
+  return this.dateOfDeath;
+});
+
+FamilyMemberSchema.virtual('contactInfo').get(function() {
+  return this.contactDetails;
 });
 
 // Pre-save middleware to update lineage

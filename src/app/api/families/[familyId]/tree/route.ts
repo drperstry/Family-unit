@@ -90,6 +90,15 @@ export async function GET(
       query.gender = Gender.MALE;
     }
 
+    // Interface for populated spouse
+    interface PopulatedSpouse {
+      _id: { toString: () => string };
+      firstName: string;
+      lastName: string;
+      photo?: string;
+      gender: string;
+    }
+
     const members = await FamilyMember.find(query)
       .sort({ generation: 1, createdAt: 1 })
       .populate('spouseId', 'firstName lastName photo gender');
@@ -97,6 +106,7 @@ export async function GET(
     // Build tree structure
     const memberMap = new Map();
     members.forEach(m => {
+      const spouse = m.spouseId as unknown as PopulatedSpouse | null;
       memberMap.set(m._id.toString(), {
         id: m._id.toString(),
         memberId: m._id.toString(),
@@ -110,13 +120,13 @@ export async function GET(
         isDeceased: m.isDeceased,
         generation: m.generation,
         parentId: m.parentId?.toString(),
-        spouseId: m.spouseId?._id?.toString(),
-        spouse: m.spouseId ? {
-          id: m.spouseId._id.toString(),
-          firstName: m.spouseId.firstName,
-          lastName: m.spouseId.lastName,
-          photo: m.spouseId.photo,
-          gender: m.spouseId.gender,
+        spouseId: spouse?._id?.toString(),
+        spouse: spouse ? {
+          id: spouse._id.toString(),
+          firstName: spouse.firstName,
+          lastName: spouse.lastName,
+          photo: spouse.photo,
+          gender: spouse.gender,
         } : null,
         childrenIds: m.childrenIds?.map((c: { toString: () => string }) => c.toString()) || [],
         position: m.position,

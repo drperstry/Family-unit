@@ -18,15 +18,15 @@ export interface AuthResult {
 // Generate JWT token
 export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN,
-  });
+    expiresIn: JWT_EXPIRES_IN as string,
+  } as jwt.SignOptions);
 }
 
 // Generate refresh token
 export function generateRefreshToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: REFRESH_TOKEN_EXPIRES_IN,
-  });
+    expiresIn: REFRESH_TOKEN_EXPIRES_IN as string,
+  } as jwt.SignOptions);
 }
 
 // Verify JWT token

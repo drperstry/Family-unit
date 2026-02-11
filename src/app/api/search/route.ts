@@ -4,7 +4,6 @@ import { Entity } from '@/models/Entity';
 import { Event } from '@/models/Event';
 import { FamilyMember } from '@/models/FamilyMember';
 import { Family } from '@/models/Family';
-import { News } from '@/models/Entity';
 import { getCurrentUser, canAccessFamily } from '@/lib/auth';
 import { FamilyStatus, VisibilityStatus, UserRole, ContentStatus, EntityType, SearchQuery } from '@/types';
 import {
