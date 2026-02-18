@@ -16,6 +16,19 @@ import {
   isValidObjectId,
 } from '@/lib/utils';
 
+// Valid submission statuses and types for validation
+const VALID_STATUSES = ['pending', 'in_progress', 'approved', 'rejected', 'closed'];
+const VALID_TYPES = [
+  'family_tree_update',
+  'member_addition',
+  'photo_upload',
+  'news_post',
+  'event_creation',
+  'general_request',
+  'service_request',
+];
+const VALID_PRIORITIES = ['low', 'medium', 'high', 'urgent'];
+
 // GET /api/submissions - Get submissions for a family
 export async function GET(request: NextRequest) {
   try {
@@ -51,7 +64,7 @@ export async function GET(request: NextRequest) {
     const isAdmin = user.role === UserRole.SYSTEM_ADMIN ||
       (user.role === UserRole.FAMILY_ADMIN && isFamilyMember);
 
-    const pagination = parsePaginationQuery(searchParams);
+    const pagination = parsePaginationQuery(searchParams, 'submission');
 
     // Build query
     const query: Record<string, unknown> = { familyId };
@@ -61,21 +74,21 @@ export async function GET(request: NextRequest) {
       query.userId = user._id;
     }
 
-    // Filter by status
+    // Filter by status - SECURITY FIX: Validate status value
     const status = searchParams.get('status');
-    if (status) {
+    if (status && VALID_STATUSES.includes(status)) {
       query.status = status;
     }
 
-    // Filter by type
+    // Filter by type - SECURITY FIX: Validate type value
     const type = searchParams.get('type');
-    if (type) {
+    if (type && VALID_TYPES.includes(type)) {
       query.type = type;
     }
 
-    // Filter by priority
+    // Filter by priority - SECURITY FIX: Validate priority value
     const priority = searchParams.get('priority');
-    if (priority) {
+    if (priority && VALID_PRIORITIES.includes(priority)) {
       query.priority = priority;
     }
 
@@ -129,17 +142,7 @@ export async function POST(request: NextRequest) {
       return errorResponse('Type, title, and description are required', 400);
     }
 
-    const validTypes = [
-      'family_tree_update',
-      'member_addition',
-      'photo_upload',
-      'news_post',
-      'event_creation',
-      'general_request',
-      'service_request',
-    ];
-
-    if (!validTypes.includes(type)) {
+    if (!VALID_TYPES.includes(type)) {
       return errorResponse('Invalid submission type', 400);
     }
 

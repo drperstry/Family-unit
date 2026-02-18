@@ -2,6 +2,7 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { NextResponse } from 'next/server';
 import { ApiResponse, PaginationInfo, PaginationQuery } from '@/types';
+import { sanitizeSortField } from './security';
 
 // Tailwind CSS class merger
 export function cn(...inputs: ClassValue[]) {
@@ -70,13 +71,18 @@ export function validationErrorResponse(
 
 // Pagination helpers
 export function parsePaginationQuery(
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
+  entityType: string = 'default'
 ): PaginationQuery {
+  const sortBy = searchParams.get('sortBy') || 'createdAt';
+  const sortOrder = searchParams.get('sortOrder');
+
   return {
     page: Math.max(1, parseInt(searchParams.get('page') || '1', 10)),
     limit: Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10))),
-    sortBy: searchParams.get('sortBy') || 'createdAt',
-    sortOrder: (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc',
+    // SECURITY FIX: Sanitize sortBy to prevent NoSQL injection
+    sortBy: sanitizeSortField(sortBy, entityType),
+    sortOrder: (sortOrder === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc',
   };
 }
 

@@ -20,6 +20,11 @@ import {
   isValidObjectId,
 } from '@/lib/utils';
 
+// Valid approval statuses
+const VALID_STATUSES = ['pending', 'approved', 'rejected', 'all'];
+// Valid entity types for approvals
+const VALID_ENTITY_TYPES = ['family', 'member', ...Object.values(EntityType)];
+
 // GET /api/approvals - Get pending approvals
 export async function GET(request: NextRequest) {
   try {
@@ -35,7 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const pagination = parsePaginationQuery(searchParams);
+    const pagination = parsePaginationQuery(searchParams, 'approval');
 
     await connectDB();
 
@@ -55,15 +60,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Status filter
+    // Status filter - SECURITY FIX: Validate status value
     const status = searchParams.get('status') || 'pending';
-    if (status !== 'all') {
+    if (VALID_STATUSES.includes(status) && status !== 'all') {
       query.status = status;
     }
 
-    // Entity type filter
+    // Entity type filter - SECURITY FIX: Validate entityType value
     const entityType = searchParams.get('entityType');
-    if (entityType) {
+    if (entityType && VALID_ENTITY_TYPES.includes(entityType)) {
       query.entityType = entityType;
     }
 
@@ -170,7 +175,9 @@ export async function POST(request: NextRequest) {
         return forbiddenResponse('Only system admins can approve families');
       }
 
-      if (user.familyId !== approval.familyId.toString()) {
+      // SECURITY FIX: Ensure proper string comparison
+      const approvalFamilyId = approval.familyId?.toString?.() ?? approval.familyId;
+      if (user.familyId !== approvalFamilyId) {
         return forbiddenResponse('You can only approve items in your family');
       }
     }

@@ -15,6 +15,7 @@ import {
   buildPaginationInfo,
   isValidObjectId,
 } from '@/lib/utils';
+import { sanitizeStringValue } from '@/lib/security';
 
 // GET /api/search - Full-text search across family content
 export async function GET(request: NextRequest) {
@@ -31,6 +32,12 @@ export async function GET(request: NextRequest) {
 
     if (!query || query.trim().length < 2) {
       return errorResponse('Search query must be at least 2 characters', 400);
+    }
+
+    // SECURITY FIX: Sanitize search query and limit length
+    const sanitizedQuery = sanitizeStringValue(query);
+    if (!sanitizedQuery || sanitizedQuery.length > 100) {
+      return errorResponse('Invalid search query', 400);
     }
 
     await connectDB();
@@ -58,10 +65,10 @@ export async function GET(request: NextRequest) {
     const isFamilyMember = user?.familyId === familyId;
     const isAdmin = user?.role === UserRole.SYSTEM_ADMIN || (user?.role === UserRole.FAMILY_ADMIN && isFamilyMember);
 
-    // Build base filter
+    // Build base filter - use sanitized query
     const baseFilter: Record<string, unknown> = {
       familyId,
-      $text: { $search: query },
+      $text: { $search: sanitizedQuery },
     };
 
     // Apply visibility filters for non-members
@@ -131,7 +138,7 @@ export async function GET(request: NextRequest) {
     if (!entityType || entityType === 'member') {
       const memberFilter: Record<string, unknown> = {
         familyId,
-        $text: { $search: query },
+        $text: { $search: sanitizedQuery },
       };
 
       if (!isAdmin) {
@@ -210,7 +217,7 @@ export async function GET(request: NextRequest) {
     return successResponse(
       {
         results: paginatedResults,
-        query,
+        query: sanitizedQuery,
         filters: {
           entityType,
           dateFrom,

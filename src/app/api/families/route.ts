@@ -17,13 +17,14 @@ import {
   buildPaginationInfo,
   slugify,
 } from '@/lib/utils';
+import { sanitizeStringValue } from '@/lib/security';
 
 // GET /api/families - List families (public or user's family)
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser(request);
     const { searchParams } = new URL(request.url);
-    const pagination = parsePaginationQuery(searchParams);
+    const pagination = parsePaginationQuery(searchParams, 'family');
 
     await connectDB();
 
@@ -33,7 +34,8 @@ export async function GET(request: NextRequest) {
     if (user?.role === UserRole.SYSTEM_ADMIN) {
       // No filter - can see everything
       const status = searchParams.get('status');
-      if (status) {
+      // SECURITY FIX: Validate status is a valid enum value
+      if (status && Object.values(FamilyStatus).includes(status as FamilyStatus)) {
         query.status = status;
       }
     } else if (user?.familyId) {
@@ -48,10 +50,13 @@ export async function GET(request: NextRequest) {
       query.status = FamilyStatus.ACTIVE;
     }
 
-    // Search filter
+    // Search filter - SECURITY FIX: Sanitize search input
     const search = searchParams.get('search');
     if (search) {
-      query.$text = { $search: search };
+      const sanitizedSearch = sanitizeStringValue(search);
+      if (sanitizedSearch && sanitizedSearch.length <= 100) {
+        query.$text = { $search: sanitizedSearch };
+      }
     }
 
     const sortField = pagination.sortBy || 'createdAt';

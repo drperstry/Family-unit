@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const pagination = parsePaginationQuery(searchParams);
+    const pagination = parsePaginationQuery(searchParams, 'event');
 
     const [events, total] = await Promise.all([
       Event.find(query)

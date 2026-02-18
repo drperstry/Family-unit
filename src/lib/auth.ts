@@ -4,8 +4,27 @@ import { NextRequest, NextResponse } from 'next/server';
 import { JWTPayload, UserRole, SafeUser } from '@/types';
 import connectDB from './db';
 import User from '@/models/User';
+import {
+  checkLoginAllowed,
+  recordFailedLogin,
+  clearLoginAttempts,
+  isTokenBlacklisted,
+} from './security';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+// SECURITY: JWT secret must be set in production
+const JWT_SECRET = process.env.JWT_SECRET;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('CRITICAL: JWT_SECRET environment variable must be set in production');
+  }
+  console.warn('WARNING: JWT_SECRET not set. Using insecure default for development only.');
+}
+
+const SECURE_JWT_SECRET = JWT_SECRET || 'dev-only-insecure-secret-do-not-use-in-production';
+const SECURE_REFRESH_SECRET = REFRESH_TOKEN_SECRET || 'dev-only-refresh-secret-do-not-use-in-production';
+
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 const REFRESH_TOKEN_EXPIRES_IN = process.env.REFRESH_TOKEN_EXPIRES_IN || '30d';
 
@@ -17,14 +36,14 @@ export interface AuthResult {
 
 // Generate JWT token
 export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign(payload, SECURE_JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN as string,
   } as jwt.SignOptions);
 }
 
-// Generate refresh token
+// Generate refresh token (uses separate secret for additional security)
 export function generateRefreshToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
-  return jwt.sign(payload, JWT_SECRET, {
+  return jwt.sign({ ...payload, type: 'refresh' }, SECURE_REFRESH_SECRET, {
     expiresIn: REFRESH_TOKEN_EXPIRES_IN as string,
   } as jwt.SignOptions);
 }
@@ -32,7 +51,27 @@ export function generateRefreshToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): 
 // Verify JWT token
 export function verifyToken(token: string): JWTPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+    // Check if token is blacklisted (for logout/revocation)
+    if (isTokenBlacklisted(token)) {
+      return null;
+    }
+    return jwt.verify(token, SECURE_JWT_SECRET) as JWTPayload;
+  } catch {
+    return null;
+  }
+}
+
+// Verify refresh token
+export function verifyRefreshToken(token: string): JWTPayload | null {
+  try {
+    if (isTokenBlacklisted(token)) {
+      return null;
+    }
+    const payload = jwt.verify(token, SECURE_REFRESH_SECRET) as JWTPayload & { type?: string };
+    if (payload.type !== 'refresh') {
+      return null;
+    }
+    return payload;
   } catch {
     return null;
   }
@@ -92,22 +131,55 @@ export async function getCurrentUser(request?: NextRequest): Promise<SafeUser | 
 // Authenticate user with email and password
 export async function authenticateUser(
   email: string,
-  password: string
-): Promise<{ user: SafeUser; token: string; refreshToken: string } | null> {
+  password: string,
+  clientIp?: string
+): Promise<{ user: SafeUser; token: string; refreshToken: string } | { error: string; lockedUntil?: Date } | null> {
   try {
+    // Brute force protection - check by email and optionally by IP
+    const emailKey = `login:${email.toLowerCase()}`;
+    const ipKey = clientIp ? `login:ip:${clientIp}` : null;
+
+    const emailCheck = checkLoginAllowed(emailKey);
+    if (!emailCheck.allowed) {
+      return {
+        error: 'Too many failed login attempts. Account temporarily locked.',
+        lockedUntil: emailCheck.lockedUntil
+      };
+    }
+
+    if (ipKey) {
+      const ipCheck = checkLoginAllowed(ipKey);
+      if (!ipCheck.allowed) {
+        return {
+          error: 'Too many failed login attempts from this IP. Please try again later.',
+          lockedUntil: ipCheck.lockedUntil
+        };
+      }
+    }
+
     await connectDB();
 
     const user = await User.findOne({ email: email.toLowerCase(), isDeleted: false })
       .select('+passwordHash');
 
     if (!user) {
+      // Record failed attempt but don't reveal if user exists
+      recordFailedLogin(emailKey);
+      if (ipKey) recordFailedLogin(ipKey);
       return null;
     }
 
     const isPasswordValid = await user.comparePassword(password);
     if (!isPasswordValid) {
+      // Record failed attempt
+      recordFailedLogin(emailKey);
+      if (ipKey) recordFailedLogin(ipKey);
       return null;
     }
+
+    // Clear failed attempts on successful login
+    clearLoginAttempts(emailKey);
+    if (ipKey) clearLoginAttempts(ipKey);
 
     // Update last login
     user.lastLoginAt = new Date();

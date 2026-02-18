@@ -131,10 +131,9 @@ export async function PUT(request: NextRequest) {
       return notFoundResponse('Family');
     }
 
-    // Check if user is admin of this family
-    if (user.role === UserRole.FAMILY_ADMIN && user.familyId !== user.familyId) {
-      return forbiddenResponse('You can only update settings for your own family');
-    }
+    // SECURITY FIX: Removed tautology bug (user.familyId !== user.familyId always false)
+    // Family admins can only update settings for their own family
+    // This is already enforced by using user.familyId for the settings lookup below
 
     // Get or create settings
     let settings = await SiteSettings.findOne({ familyId: user.familyId });

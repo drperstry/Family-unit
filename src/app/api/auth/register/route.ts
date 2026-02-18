@@ -1,13 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import connectDB from '@/lib/db';
 import { User } from '@/models/User';
 import { generateToken, generateRefreshToken } from '@/lib/auth';
 import { audit } from '@/lib/audit';
 import { UserRole, JWTPayload, SafeUser } from '@/types';
-import { errorResponse, successResponse, validationErrorResponse } from '@/lib/utils';
+import { errorResponse, successResponse, validationErrorResponse, isValidPassword } from '@/lib/utils';
+import { checkRateLimit } from '@/lib/security';
 
 export async function POST(request: NextRequest) {
   try {
+    // Get client IP for rate limiting
+    const forwarded = request.headers.get('x-forwarded-for');
+    const clientIp = forwarded ? forwarded.split(',')[0].trim() : 'unknown';
+
+    // Rate limit: 5 registration attempts per hour per IP
+    const rateLimitKey = `register:${clientIp}`;
+    const rateLimit = checkRateLimit(rateLimitKey, 5, 60 * 60 * 1000);
+    if (!rateLimit.allowed) {
+      return errorResponse('Too many registration attempts. Please try again later.', 429);
+    }
+
     const body = await request.json();
     const { email, password, firstName, lastName, role } = body;
 
@@ -22,8 +34,12 @@ export async function POST(request: NextRequest) {
 
     if (!password || typeof password !== 'string') {
       errors.password = 'Password is required';
-    } else if (password.length < 8) {
-      errors.password = 'Password must be at least 8 characters';
+    } else {
+      // SECURITY FIX: Enforce strong password policy
+      const passwordValidation = isValidPassword(password);
+      if (!passwordValidation.valid) {
+        errors.password = passwordValidation.errors.join('. ');
+      }
     }
 
     if (!firstName || typeof firstName !== 'string') {

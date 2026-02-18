@@ -13,6 +13,7 @@ import {
   notFoundResponse,
   isValidObjectId,
 } from '@/lib/utils';
+import { sanitizeObject } from '@/lib/security';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -125,7 +126,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (description !== undefined) securityRole.description = description;
     if (entityPrivileges !== undefined) securityRole.entityPrivileges = entityPrivileges;
     if (specialPermissions !== undefined) {
-      Object.assign(securityRole.specialPermissions, specialPermissions);
+      // SECURITY FIX: Sanitize to prevent prototype pollution
+      const sanitizedPermissions = sanitizeObject(specialPermissions);
+      // Only allow known permission keys
+      const allowedKeys = [
+        'canManageUsers', 'canApproveContent', 'canViewReports',
+        'canExportData', 'canImportData', 'canManageSettings',
+        'canManageRoles', 'canViewAuditLogs', 'canBulkOperations'
+      ];
+      for (const key of Object.keys(sanitizedPermissions)) {
+        if (allowedKeys.includes(key) && typeof sanitizedPermissions[key] === 'boolean') {
+          (securityRole.specialPermissions as Record<string, boolean>)[key] = sanitizedPermissions[key] as boolean;
+        }
+      }
     }
 
     await securityRole.save();
