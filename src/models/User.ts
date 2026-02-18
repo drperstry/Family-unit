@@ -1,8 +1,15 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model, Types } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { User as UserType, UserRole, Gender } from '@/types';
 
+export interface CustomPermission {
+  permission: string;
+  granted: boolean;
+}
+
 export interface UserDocument extends Omit<UserType, '_id'>, Document {
+  securityRoleId?: Types.ObjectId;
+  customPermissions?: CustomPermission[];
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
@@ -19,7 +26,19 @@ const SocialLinksSchema = new Schema({
   twitter: String,
   instagram: String,
   linkedin: String,
+  youtube: String,
+  tiktok: String,
+  snapchat: String,
+  whatsapp: String,
+  telegram: String,
+  pinterest: String,
+  github: String,
+  discord: String,
   website: String,
+  other: [{
+    platform: String,
+    url: String,
+  }],
 }, { _id: false });
 
 const NotificationPreferencesSchema = new Schema({
@@ -82,6 +101,17 @@ const UserSchema = new Schema<UserDocument>({
     default: UserRole.GUEST,
     index: true,
   },
+  // Security role for granular permissions (CRM-style RBAC)
+  securityRoleId: {
+    type: Schema.Types.ObjectId,
+    ref: 'SecurityRole',
+    index: true,
+  },
+  // Custom permission overrides (grants or denies specific permissions)
+  customPermissions: [{
+    permission: { type: String, required: true },
+    granted: { type: Boolean, default: true },
+  }],
   familyId: {
     type: Schema.Types.ObjectId,
     ref: 'Family',

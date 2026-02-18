@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Header } from '@/components/layout';
 import { Button, Card, Badge, Loading, SimpleTabs, Avatar } from '@/components/ui';
+import { SecurityRolesManager, UserAccessManager } from '@/components/admin';
 import {
   Shield,
   Users,
@@ -23,6 +24,8 @@ import {
   Eye,
   Trash2,
   Ban,
+  Lock,
+  UserCog,
 } from 'lucide-react';
 import { UserRole, FamilyStatus, ContentStatus } from '@/types';
 
@@ -331,6 +334,8 @@ export default function AdminPage() {
               { id: 'approvals', label: `Approvals (${stats.pendingApprovals})` },
               { id: 'users', label: 'Users' },
               { id: 'families', label: 'Families' },
+              { id: 'access', label: 'Access Control' },
+              { id: 'roles', label: 'Security Roles' },
             ]}
             activeTab={activeTab}
             onChange={setActiveTab}
@@ -643,6 +648,14 @@ export default function AdminPage() {
                 </table>
               </div>
             </Card>
+          )}
+
+          {activeTab === 'access' && (
+            <UserAccessManager />
+          )}
+
+          {activeTab === 'roles' && (
+            <SecurityRolesManager />
           )}
         </div>
       </main>
