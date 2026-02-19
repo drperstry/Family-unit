@@ -3,6 +3,7 @@
 import React from 'react';
 import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from './AuthContext';
+import { SettingsProvider } from './SettingsContext';
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -17,7 +18,9 @@ export function Providers({ children }: ProvidersProps) {
       disableTransitionOnChange
     >
       <AuthProvider>
-        {children}
+        <SettingsProvider>
+          {children}
+        </SettingsProvider>
       </AuthProvider>
     </ThemeProvider>
   );

@@ -6,6 +6,7 @@ import { Header, Sidebar, MobileNav } from '@/components/layout';
 import { FamilyTree } from '@/components/tree';
 import { Button, Card, Badge, PageLoading, Modal, Input, Select } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
+import { useSettings } from '@/context/SettingsContext';
 import {
   Users,
   Calendar,
@@ -52,6 +53,7 @@ interface FamilyData {
 export default function FamilyPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth();
+  const { isReady: settingsReady } = useSettings();
   const [isLoading, setIsLoading] = useState(true);
   const [family, setFamily] = useState<FamilyData | null>(null);
   const [treeData, setTreeData] = useState<TreeMember[]>([]);
@@ -150,8 +152,9 @@ export default function FamilyPage() {
     }
   };
 
-  if (authLoading || isLoading) {
-    return <PageLoading message="Loading your family..." />;
+  // Wait until everything is ready before showing content
+  if (authLoading || isLoading || !settingsReady) {
+    return <PageLoading />;
   }
 
   if (!user || !family) {

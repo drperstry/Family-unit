@@ -19,9 +19,16 @@ import {
   Moon,
   Sun,
   ChevronDown,
+  BookOpen,
+  FileText,
+  Heart,
+  Vote,
+  Megaphone,
+  Sparkles,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { SafeUser, UserRole } from '@/types';
+import { useSettings } from '@/context/SettingsContext';
 
 interface HeaderProps {
   user?: SafeUser | null;
@@ -33,13 +40,24 @@ export function Header({ user, familyName }: HeaderProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
+  const { settings, isFeatureEnabled, isReady } = useSettings();
 
+  // Use settings site name if available, otherwise fall back to family name or default
+  const siteName = isReady && settings.siteName ? settings.siteName : (familyName || 'FamilyHub');
+
+  // Build navigation based on enabled features
   const navigation = [
-    { name: 'Home', href: '/family', icon: Home },
-    { name: 'Members', href: '/family/members', icon: Users },
-    { name: 'Events', href: '/family/events', icon: Calendar },
-    { name: 'Gallery', href: '/family/gallery', icon: Image },
-  ];
+    { name: 'Home', href: '/family', icon: Home, feature: null },
+    { name: 'Members', href: '/family/members', icon: Users, feature: 'members' as const },
+    { name: 'Events', href: '/family/events', icon: Calendar, feature: 'events' as const },
+    { name: 'Gallery', href: '/family/gallery', icon: Image, feature: 'gallery' as const },
+    { name: 'Recipes', href: '/family/recipes', icon: BookOpen, feature: 'recipes' as const },
+    { name: 'Documents', href: '/family/documents', icon: FileText, feature: 'documents' as const },
+    { name: 'Traditions', href: '/family/traditions', icon: Sparkles, feature: 'traditions' as const },
+    { name: 'Polls', href: '/family/polls', icon: Vote, feature: 'polls' as const },
+    { name: 'Memorial', href: '/family/memorial', icon: Heart, feature: 'memorial' as const },
+    { name: 'Announcements', href: '/family/announcements', icon: Megaphone, feature: 'announcements' as const },
+  ].filter(item => !item.feature || isFeatureEnabled(item.feature));
 
   const isActive = (href: string) => pathname?.startsWith(href);
 
@@ -47,23 +65,19 @@ export function Header({ user, familyName }: HeaderProps) {
     <header className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo & Family Name */}
+          {/* Logo & Site Name */}
           <div className="flex items-center gap-4">
             <Link
-              href="/"
+              href={user?.familyId ? '/family' : '/'}
               className="flex items-center gap-2 text-xl font-bold text-amber-600 dark:text-amber-400"
             >
-              <span className="text-2xl">👨‍👩‍👧‍👦</span>
-              <span className="hidden sm:inline">FamilyHub</span>
+              {settings.logo ? (
+                <img src={settings.logo} alt={siteName} className="h-8 w-8 object-contain" />
+              ) : (
+                <span className="text-2xl">👨‍👩‍👧‍👦</span>
+              )}
+              <span className="hidden sm:inline">{siteName}</span>
             </Link>
-            {familyName && (
-              <span className="hidden md:inline text-gray-400">|</span>
-            )}
-            {familyName && (
-              <span className="hidden md:inline text-gray-600 dark:text-gray-300 font-medium">
-                {familyName}
-              </span>
-            )}
           </div>
 
           {/* Desktop Navigation */}

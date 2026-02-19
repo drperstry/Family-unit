@@ -25,6 +25,12 @@ export interface SiteSettingsDocument extends Document {
     services: boolean;
     submissions: boolean;
     chat: boolean;
+    recipes: boolean;
+    documents: boolean;
+    traditions: boolean;
+    polls: boolean;
+    memorial: boolean;
+    announcements: boolean;
   };
 
   // Privacy Settings
@@ -139,6 +145,12 @@ const SiteSettingsSchema = new Schema<SiteSettingsDocument>({
     services: { type: Boolean, default: true },
     submissions: { type: Boolean, default: true },
     chat: { type: Boolean, default: false },
+    recipes: { type: Boolean, default: true },
+    documents: { type: Boolean, default: true },
+    traditions: { type: Boolean, default: true },
+    polls: { type: Boolean, default: true },
+    memorial: { type: Boolean, default: true },
+    announcements: { type: Boolean, default: true },
   },
   privacy: {
     isPublic: { type: Boolean, default: false },
