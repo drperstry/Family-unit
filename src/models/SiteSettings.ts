@@ -9,11 +9,14 @@ export interface SiteSettingsDocument extends Document {
   favicon?: string;
   primaryColor?: string;
   secondaryColor?: string;
+  accentColor?: string;
+  fontFamily?: string;
 
   // Content Settings
   aboutContent?: string;
   welcomeMessage?: string;
   footerText?: string;
+  copyrightText?: string;
 
   // Feature Toggles
   features: {
@@ -40,6 +43,9 @@ export interface SiteSettingsDocument extends Document {
     showMemberEmails: boolean;
     showMemberPhones: boolean;
     allowGuestViewing: boolean;
+    showBirthDates: boolean;
+    showDeathDates: boolean;
+    showAddresses: boolean;
   };
 
   // Notification Settings
@@ -47,6 +53,8 @@ export interface SiteSettingsDocument extends Document {
     emailOnNewMember: boolean;
     emailOnNewSubmission: boolean;
     emailOnApproval: boolean;
+    emailOnNewContent: boolean;
+    emailOnMention: boolean;
     emailDigestFrequency: 'daily' | 'weekly' | 'monthly' | 'never';
   };
 
@@ -58,6 +66,8 @@ export interface SiteSettingsDocument extends Document {
     youtube?: string;
     linkedin?: string;
     whatsapp?: string;
+    tiktok?: string;
+    pinterest?: string;
   };
 
   // SEO Settings
@@ -65,6 +75,53 @@ export interface SiteSettingsDocument extends Document {
     metaTitle?: string;
     metaDescription?: string;
     keywords?: string[];
+    ogImage?: string;
+  };
+
+  // Content Limits (per-family overrides)
+  contentLimits: {
+    maxPhotosPerAlbum: number;
+    maxMembersPerFamily: number;
+    maxEventsPerMonth: number;
+    maxStorageBytes: number;
+    maxRecipesPerMember: number;
+    maxDocumentsPerMember: number;
+  };
+
+  // Display Settings
+  display: {
+    dateFormat: string;
+    timeFormat: '12h' | '24h';
+    timezone: string;
+    defaultLanguage: string;
+    showMemberCount: boolean;
+    showLastUpdated: boolean;
+    membersPerPage: number;
+    eventsPerPage: number;
+    photosPerPage: number;
+    newsPerPage: number;
+  };
+
+  // Family Tree Settings
+  familyTreeSettings: {
+    showPhotos: boolean;
+    showBirthDates: boolean;
+    showDeathDates: boolean;
+    showMarriageDates: boolean;
+    defaultView: 'horizontal' | 'vertical' | 'radial';
+    maxGenerations: number;
+    colorScheme: 'default' | 'gender' | 'generation' | 'custom';
+    maleColor?: string;
+    femaleColor?: string;
+  };
+
+  // Invite Settings
+  inviteSettings: {
+    allowMemberInvites: boolean;
+    requireAdminApproval: boolean;
+    inviteLinkExpiryDays: number;
+    maxInvitesPerMember: number;
+    welcomeEmailTemplate?: string;
   };
 
   // Custom Pages
@@ -74,13 +131,39 @@ export interface SiteSettingsDocument extends Document {
     content: string;
     isPublished: boolean;
     order: number;
+    showInNav: boolean;
+    icon?: string;
   }>;
+
+  // Navigation Settings
+  navigation: {
+    showHome: boolean;
+    showAbout: boolean;
+    showContact: boolean;
+    menuItems: Array<{
+      label: string;
+      href: string;
+      icon?: string;
+      order: number;
+      requiresAuth: boolean;
+    }>;
+  };
+
+  // Contact Settings
+  contact: {
+    email?: string;
+    phone?: string;
+    address?: string;
+    showContactForm: boolean;
+    contactFormRecipients: string[];
+  };
 
   // Maintenance Mode
   maintenance: {
     enabled: boolean;
     message?: string;
     allowedUsers?: Types.ObjectId[];
+    scheduledEnd?: Date;
   };
 
   updatedBy?: Types.ObjectId;
@@ -94,7 +177,17 @@ const CustomPageSchema = new Schema({
   content: { type: String, required: true },
   isPublished: { type: Boolean, default: false },
   order: { type: Number, default: 0 },
+  showInNav: { type: Boolean, default: true },
+  icon: String,
 }, { _id: true });
+
+const MenuItemSchema = new Schema({
+  label: { type: String, required: true },
+  href: { type: String, required: true },
+  icon: String,
+  order: { type: Number, default: 0 },
+  requiresAuth: { type: Boolean, default: false },
+}, { _id: false });
 
 const SiteSettingsSchema = new Schema<SiteSettingsDocument>({
   familyId: {
@@ -124,6 +217,14 @@ const SiteSettingsSchema = new Schema<SiteSettingsDocument>({
     type: String,
     default: '#1f2937', // Gray-800
   },
+  accentColor: {
+    type: String,
+    default: '#3b82f6', // Blue-500
+  },
+  fontFamily: {
+    type: String,
+    default: 'Inter',
+  },
   aboutContent: {
     type: String,
     maxlength: 10000,
@@ -135,6 +236,10 @@ const SiteSettingsSchema = new Schema<SiteSettingsDocument>({
   footerText: {
     type: String,
     maxlength: 500,
+  },
+  copyrightText: {
+    type: String,
+    maxlength: 200,
   },
   features: {
     familyTree: { type: Boolean, default: true },
@@ -158,11 +263,16 @@ const SiteSettingsSchema = new Schema<SiteSettingsDocument>({
     showMemberEmails: { type: Boolean, default: false },
     showMemberPhones: { type: Boolean, default: false },
     allowGuestViewing: { type: Boolean, default: false },
+    showBirthDates: { type: Boolean, default: true },
+    showDeathDates: { type: Boolean, default: true },
+    showAddresses: { type: Boolean, default: false },
   },
   notifications: {
     emailOnNewMember: { type: Boolean, default: true },
     emailOnNewSubmission: { type: Boolean, default: true },
     emailOnApproval: { type: Boolean, default: true },
+    emailOnNewContent: { type: Boolean, default: true },
+    emailOnMention: { type: Boolean, default: true },
     emailDigestFrequency: {
       type: String,
       enum: ['daily', 'weekly', 'monthly', 'never'],
@@ -176,17 +286,72 @@ const SiteSettingsSchema = new Schema<SiteSettingsDocument>({
     youtube: String,
     linkedin: String,
     whatsapp: String,
+    tiktok: String,
+    pinterest: String,
   },
   seo: {
     metaTitle: String,
     metaDescription: String,
     keywords: [String],
+    ogImage: String,
+  },
+  contentLimits: {
+    maxPhotosPerAlbum: { type: Number, default: 500 },
+    maxMembersPerFamily: { type: Number, default: 1000 },
+    maxEventsPerMonth: { type: Number, default: 100 },
+    maxStorageBytes: { type: Number, default: 5 * 1024 * 1024 * 1024 }, // 5GB
+    maxRecipesPerMember: { type: Number, default: 100 },
+    maxDocumentsPerMember: { type: Number, default: 50 },
+  },
+  display: {
+    dateFormat: { type: String, default: 'MMM d, yyyy' },
+    timeFormat: { type: String, enum: ['12h', '24h'], default: '12h' },
+    timezone: { type: String, default: 'UTC' },
+    defaultLanguage: { type: String, default: 'en' },
+    showMemberCount: { type: Boolean, default: true },
+    showLastUpdated: { type: Boolean, default: true },
+    membersPerPage: { type: Number, default: 20 },
+    eventsPerPage: { type: Number, default: 10 },
+    photosPerPage: { type: Number, default: 24 },
+    newsPerPage: { type: Number, default: 10 },
+  },
+  familyTreeSettings: {
+    showPhotos: { type: Boolean, default: true },
+    showBirthDates: { type: Boolean, default: true },
+    showDeathDates: { type: Boolean, default: true },
+    showMarriageDates: { type: Boolean, default: false },
+    defaultView: { type: String, enum: ['horizontal', 'vertical', 'radial'], default: 'vertical' },
+    maxGenerations: { type: Number, default: 10 },
+    colorScheme: { type: String, enum: ['default', 'gender', 'generation', 'custom'], default: 'default' },
+    maleColor: { type: String, default: '#3b82f6' },
+    femaleColor: { type: String, default: '#ec4899' },
+  },
+  inviteSettings: {
+    allowMemberInvites: { type: Boolean, default: true },
+    requireAdminApproval: { type: Boolean, default: true },
+    inviteLinkExpiryDays: { type: Number, default: 7 },
+    maxInvitesPerMember: { type: Number, default: 10 },
+    welcomeEmailTemplate: String,
   },
   customPages: [CustomPageSchema],
+  navigation: {
+    showHome: { type: Boolean, default: true },
+    showAbout: { type: Boolean, default: true },
+    showContact: { type: Boolean, default: true },
+    menuItems: [MenuItemSchema],
+  },
+  contact: {
+    email: String,
+    phone: String,
+    address: String,
+    showContactForm: { type: Boolean, default: true },
+    contactFormRecipients: [String],
+  },
   maintenance: {
     enabled: { type: Boolean, default: false },
     message: String,
     allowedUsers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    scheduledEnd: Date,
   },
   updatedBy: {
     type: Schema.Types.ObjectId,

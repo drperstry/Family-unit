@@ -69,17 +69,31 @@ export function validationErrorResponse(
   );
 }
 
+// Pagination configuration defaults (can be overridden by system settings)
+export const DEFAULT_PAGINATION = {
+  defaultLimit: 20,
+  maxLimit: 100,
+};
+
+export interface PaginationConfig {
+  defaultLimit?: number;
+  maxLimit?: number;
+}
+
 // Pagination helpers
 export function parsePaginationQuery(
   searchParams: URLSearchParams,
-  entityType: string = 'default'
+  entityType: string = 'default',
+  config?: PaginationConfig
 ): PaginationQuery {
   const sortBy = searchParams.get('sortBy') || 'createdAt';
   const sortOrder = searchParams.get('sortOrder');
+  const defaultLimit = config?.defaultLimit ?? DEFAULT_PAGINATION.defaultLimit;
+  const maxLimit = config?.maxLimit ?? DEFAULT_PAGINATION.maxLimit;
 
   return {
     page: Math.max(1, parseInt(searchParams.get('page') || '1', 10)),
-    limit: Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10))),
+    limit: Math.min(maxLimit, Math.max(1, parseInt(searchParams.get('limit') || String(defaultLimit), 10))),
     // SECURITY FIX: Sanitize sortBy to prevent NoSQL injection
     sortBy: sanitizeSortField(sortBy, entityType),
     sortOrder: (sortOrder === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc',
@@ -207,20 +221,47 @@ export function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
+export interface PasswordRequirements {
+  minLength: number;
+  requireUppercase: boolean;
+  requireLowercase: boolean;
+  requireNumbers: boolean;
+  requireSpecialChars: boolean;
+}
+
+// Default password requirements (can be overridden by system settings)
+export const DEFAULT_PASSWORD_REQUIREMENTS: PasswordRequirements = {
+  minLength: 8,
+  requireUppercase: true,
+  requireLowercase: true,
+  requireNumbers: true,
+  requireSpecialChars: false,
+};
+
 export function isValidPassword(password: string): { valid: boolean; errors: string[] } {
+  return validatePasswordWithRequirements(password, DEFAULT_PASSWORD_REQUIREMENTS);
+}
+
+export function validatePasswordWithRequirements(
+  password: string,
+  requirements: PasswordRequirements
+): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
-  if (password.length < 8) {
-    errors.push('Password must be at least 8 characters long');
+  if (password.length < requirements.minLength) {
+    errors.push(`Password must be at least ${requirements.minLength} characters long`);
   }
-  if (!/[A-Z]/.test(password)) {
+  if (requirements.requireUppercase && !/[A-Z]/.test(password)) {
     errors.push('Password must contain at least one uppercase letter');
   }
-  if (!/[a-z]/.test(password)) {
+  if (requirements.requireLowercase && !/[a-z]/.test(password)) {
     errors.push('Password must contain at least one lowercase letter');
   }
-  if (!/[0-9]/.test(password)) {
+  if (requirements.requireNumbers && !/[0-9]/.test(password)) {
     errors.push('Password must contain at least one number');
+  }
+  if (requirements.requireSpecialChars && !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    errors.push('Password must contain at least one special character');
   }
 
   return { valid: errors.length === 0, errors };

@@ -252,9 +252,30 @@ if (typeof setInterval !== 'undefined') {
  */
 const loginAttempts = new Map<string, { count: number; lastAttempt: number; lockedUntil?: number }>();
 
-const LOGIN_MAX_ATTEMPTS = 5;
-const LOGIN_LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
-const LOGIN_ATTEMPT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+// Default values (can be overridden by system settings)
+// These are used when config is not available
+export const DEFAULT_LOGIN_SECURITY = {
+  maxAttempts: 5,
+  lockoutDurationMs: 15 * 60 * 1000, // 15 minutes
+  attemptWindowMs: 60 * 60 * 1000, // 1 hour
+};
+
+// Configurable values (set from system settings)
+let loginSecurityConfig = { ...DEFAULT_LOGIN_SECURITY };
+
+/**
+ * Update login security configuration from system settings
+ */
+export function setLoginSecurityConfig(config: Partial<typeof DEFAULT_LOGIN_SECURITY>): void {
+  loginSecurityConfig = { ...DEFAULT_LOGIN_SECURITY, ...config };
+}
+
+/**
+ * Get current login security configuration
+ */
+export function getLoginSecurityConfig() {
+  return { ...loginSecurityConfig };
+}
 
 /**
  * Check if login is allowed (brute force protection)
@@ -268,9 +289,10 @@ export function checkLoginAllowed(identifier: string): {
 } {
   const now = Date.now();
   const record = loginAttempts.get(identifier);
+  const config = getLoginSecurityConfig();
 
   if (!record) {
-    return { allowed: true, attemptsRemaining: LOGIN_MAX_ATTEMPTS };
+    return { allowed: true, attemptsRemaining: config.maxAttempts };
   }
 
   // Check if locked
@@ -283,14 +305,14 @@ export function checkLoginAllowed(identifier: string): {
   }
 
   // Reset if window expired
-  if (now - record.lastAttempt > LOGIN_ATTEMPT_WINDOW_MS) {
+  if (now - record.lastAttempt > config.attemptWindowMs) {
     loginAttempts.delete(identifier);
-    return { allowed: true, attemptsRemaining: LOGIN_MAX_ATTEMPTS };
+    return { allowed: true, attemptsRemaining: config.maxAttempts };
   }
 
   // Check remaining attempts
-  if (record.count >= LOGIN_MAX_ATTEMPTS) {
-    record.lockedUntil = now + LOGIN_LOCKOUT_MS;
+  if (record.count >= config.maxAttempts) {
+    record.lockedUntil = now + config.lockoutDurationMs;
     return {
       allowed: false,
       attemptsRemaining: 0,
@@ -300,7 +322,7 @@ export function checkLoginAllowed(identifier: string): {
 
   return {
     allowed: true,
-    attemptsRemaining: LOGIN_MAX_ATTEMPTS - record.count
+    attemptsRemaining: config.maxAttempts - record.count
   };
 }
 
@@ -311,6 +333,7 @@ export function checkLoginAllowed(identifier: string): {
 export function recordFailedLogin(identifier: string): void {
   const now = Date.now();
   const record = loginAttempts.get(identifier);
+  const config = getLoginSecurityConfig();
 
   if (!record) {
     loginAttempts.set(identifier, { count: 1, lastAttempt: now });
@@ -318,7 +341,7 @@ export function recordFailedLogin(identifier: string): void {
   }
 
   // Reset if window expired
-  if (now - record.lastAttempt > LOGIN_ATTEMPT_WINDOW_MS) {
+  if (now - record.lastAttempt > config.attemptWindowMs) {
     loginAttempts.set(identifier, { count: 1, lastAttempt: now });
     return;
   }
@@ -327,8 +350,8 @@ export function recordFailedLogin(identifier: string): void {
   record.lastAttempt = now;
 
   // Lock if max attempts reached
-  if (record.count >= LOGIN_MAX_ATTEMPTS) {
-    record.lockedUntil = now + LOGIN_LOCKOUT_MS;
+  if (record.count >= config.maxAttempts) {
+    record.lockedUntil = now + config.lockoutDurationMs;
   }
 }
 

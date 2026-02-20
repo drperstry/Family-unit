@@ -5,6 +5,7 @@ import { Media } from '@/models/Media';
 import { Family } from '@/models/Family';
 import { getCurrentUser } from '@/lib/auth';
 import { UserRole, EntityType } from '@/types';
+import { getUploadConfig, DEFAULT_SYSTEM_CONFIG } from '@/lib/config';
 import {
   errorResponse,
   successResponse,
@@ -15,19 +16,14 @@ import {
   generateId,
 } from '@/lib/utils';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_MIME_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/svg+xml',
-  'application/pdf',
-  'video/mp4',
-  'video/webm',
-  'audio/mpeg',
-  'audio/wav',
-];
+// Helper to get file type category
+function getFileCategory(mimeType: string): 'image' | 'video' | 'document' | 'audio' | 'unknown' {
+  if (mimeType.startsWith('image/')) return 'image';
+  if (mimeType.startsWith('video/')) return 'video';
+  if (mimeType.startsWith('audio/')) return 'audio';
+  if (mimeType.includes('pdf') || mimeType.includes('document') || mimeType.includes('word')) return 'document';
+  return 'unknown';
+}
 
 // POST /api/upload - Upload a file
 export async function POST(request: NextRequest) {
@@ -52,13 +48,47 @@ export async function POST(request: NextRequest) {
       return errorResponse('Valid family ID is required', 400);
     }
 
-    // Check file size
-    if (file.size > MAX_FILE_SIZE) {
-      return errorResponse(`File size exceeds maximum of ${MAX_FILE_SIZE / 1024 / 1024}MB`, 400);
+    // Get upload configuration (use defaults if DB unavailable)
+    let uploadConfig;
+    try {
+      uploadConfig = await getUploadConfig();
+    } catch {
+      uploadConfig = DEFAULT_SYSTEM_CONFIG.uploads;
     }
 
-    // Check mime type
-    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    // Determine file category and get appropriate size limit
+    const fileCategory = getFileCategory(file.type);
+    let maxSize = uploadConfig.maxFileSize;
+
+    switch (fileCategory) {
+      case 'image':
+        maxSize = uploadConfig.maxImageSize || uploadConfig.maxFileSize;
+        break;
+      case 'video':
+        maxSize = uploadConfig.maxVideoSize || uploadConfig.maxFileSize;
+        break;
+      case 'document':
+        maxSize = uploadConfig.maxDocumentSize || uploadConfig.maxFileSize;
+        break;
+      case 'audio':
+        maxSize = uploadConfig.maxFileSize;
+        break;
+    }
+
+    // Check file size against configurable limit
+    if (file.size > maxSize) {
+      return errorResponse(`File size exceeds maximum of ${Math.round(maxSize / 1024 / 1024)}MB for ${fileCategory} files`, 400);
+    }
+
+    // Check mime type against configurable allowed types
+    const allAllowedTypes = [
+      ...(uploadConfig.allowedImageTypes || []),
+      ...(uploadConfig.allowedVideoTypes || []),
+      ...(uploadConfig.allowedDocumentTypes || []),
+      ...(uploadConfig.allowedAudioTypes || []),
+    ];
+
+    if (!allAllowedTypes.includes(file.type)) {
       return errorResponse(`File type ${file.type} is not allowed`, 400);
     }
 
