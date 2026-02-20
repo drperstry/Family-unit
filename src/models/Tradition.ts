@@ -126,7 +126,7 @@ const TraditionSchema = new Schema<TraditionDocument>({
   visibility: {
     type: String,
     enum: Object.values(VisibilityStatus),
-    default: VisibilityStatus.FAMILY,
+    default: VisibilityStatus.FAMILY_ONLY,
   },
   likes: [{
     type: Schema.Types.ObjectId,

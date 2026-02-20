@@ -117,7 +117,7 @@ const PollSchema = new Schema<PollDocument>({
   visibility: {
     type: String,
     enum: Object.values(VisibilityStatus),
-    default: VisibilityStatus.FAMILY,
+    default: VisibilityStatus.FAMILY_ONLY,
   },
   requiredParticipants: [{
     type: Schema.Types.ObjectId,

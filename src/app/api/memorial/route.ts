@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
       timeline: timeline || [],
       anniversaryReminders: anniversaryReminders !== false,
       status: ContentStatus.PENDING,
-      visibility: visibility || VisibilityStatus.FAMILY,
+      visibility: visibility || VisibilityStatus.FAMILY_ONLY,
       createdBy: user._id,
     });
 

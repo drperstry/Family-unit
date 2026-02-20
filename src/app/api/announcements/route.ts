@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
       isPinned: isAdmin ? (isPinned || false) : false, // Only admins can pin
       pinnedUntil: isPinned && pinnedUntil ? new Date(pinnedUntil) : undefined,
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
-      visibility: visibility || VisibilityStatus.FAMILY,
+      visibility: visibility || VisibilityStatus.FAMILY_ONLY,
       status: isAdmin ? ContentStatus.APPROVED : ContentStatus.PENDING,
       createdBy: user._id,
     });

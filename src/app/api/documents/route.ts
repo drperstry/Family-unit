@@ -216,7 +216,7 @@ export async function POST(request: NextRequest) {
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
       reminderDate: reminderDate ? new Date(reminderDate) : undefined,
       status: ContentStatus.APPROVED, // Documents are approved immediately
-      visibility: visibility || VisibilityStatus.FAMILY,
+      visibility: visibility || VisibilityStatus.FAMILY_ONLY,
       createdBy: user._id,
     });
 

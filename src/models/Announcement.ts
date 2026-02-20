@@ -105,7 +105,7 @@ const AnnouncementSchema = new Schema<AnnouncementDocument>({
   visibility: {
     type: String,
     enum: Object.values(VisibilityStatus),
-    default: VisibilityStatus.FAMILY,
+    default: VisibilityStatus.FAMILY_ONLY,
   },
   commentsCount: {
     type: Number,

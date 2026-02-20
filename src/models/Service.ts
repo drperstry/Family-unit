@@ -43,6 +43,9 @@ export interface ServiceDocument extends Document {
 
   createdBy: Types.ObjectId;
   updatedBy?: Types.ObjectId;
+  isDeleted: boolean;
+  deletedAt?: Date;
+  deletedBy?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -152,6 +155,16 @@ const ServiceSchema = new Schema<ServiceDocument>({
     required: true,
   },
   updatedBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  deletedAt: Date,
+  deletedBy: {
     type: Schema.Types.ObjectId,
     ref: 'User',
   },

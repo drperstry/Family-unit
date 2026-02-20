@@ -138,7 +138,7 @@ const RecipeSchema = new Schema<RecipeDocument>({
   visibility: {
     type: String,
     enum: Object.values(VisibilityStatus),
-    default: VisibilityStatus.FAMILY,
+    default: VisibilityStatus.FAMILY_ONLY,
   },
   likes: [{
     type: Schema.Types.ObjectId,

@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
       story: story?.trim(),
       tips: tips || [],
       variations: variations || [],
-      visibility: visibility || VisibilityStatus.FAMILY,
+      visibility: visibility || VisibilityStatus.FAMILY_ONLY,
       status: ContentStatus.PENDING,
       createdBy: user._id,
     });

@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
       startsAt: startsAt ? new Date(startsAt) : undefined,
       endsAt: endsAt ? new Date(endsAt) : undefined,
       status: 'active',
-      visibility: visibility || VisibilityStatus.FAMILY,
+      visibility: visibility || VisibilityStatus.FAMILY_ONLY,
       requiredParticipants: requiredParticipants?.map((id: string) => new Types.ObjectId(id)) || [],
       createdBy: user._id,
     });

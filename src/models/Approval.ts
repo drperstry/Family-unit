@@ -16,6 +16,8 @@ export interface ApprovalDocument extends Document {
     oldValue: unknown;
     newValue: unknown;
   }>;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const ApprovalChangeSchema = new Schema({

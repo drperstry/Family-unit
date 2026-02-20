@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
       instructions: instructions || [],
       isActive: true,
       status: ContentStatus.PENDING,
-      visibility: visibility || VisibilityStatus.FAMILY,
+      visibility: visibility || VisibilityStatus.FAMILY_ONLY,
       createdBy: user._id,
     });
 

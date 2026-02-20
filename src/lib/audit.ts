@@ -137,6 +137,22 @@ export const audit = {
     });
   },
 
+  // Alias for create (for API routes)
+  contentCreate: async (
+    context: AuditContext,
+    familyId: string,
+    entityId: string,
+    entityType: string,
+    title: string
+  ) => {
+    await createAuditLog(AuditAction.CREATE, context, {
+      familyId,
+      entityId,
+      entityType,
+      details: { title },
+    });
+  },
+
   update: async (
     context: AuditContext,
     familyId: string,

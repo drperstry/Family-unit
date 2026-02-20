@@ -124,7 +124,7 @@ const FamilyDocumentSchema = new Schema<FamilyDocumentDocument>({
   visibility: {
     type: String,
     enum: Object.values(VisibilityStatus),
-    default: VisibilityStatus.FAMILY,
+    default: VisibilityStatus.FAMILY_ONLY,
   },
   accessLog: [AccessLogSchema],
   version: {

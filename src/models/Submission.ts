@@ -16,6 +16,9 @@ export interface SubmissionDocument extends Document {
   reviewedAt?: Date;
   reviewNotes?: string;
   completedAt?: Date;
+  isDeleted: boolean;
+  deletedAt?: Date;
+  deletedBy?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -84,6 +87,16 @@ const SubmissionSchema = new Schema<SubmissionDocument>({
     maxlength: 2000,
   },
   completedAt: Date,
+  isDeleted: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  deletedAt: Date,
+  deletedBy: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+  },
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
