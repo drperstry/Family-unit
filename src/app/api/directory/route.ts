@@ -16,6 +16,11 @@ import {
   parsePaginationQuery,
   buildPaginationInfo,
 } from '@/lib/utils';
+import {
+  memberCache,
+  CacheKeys,
+  CacheTTL,
+} from '@/lib/cache';
 
 interface DirectoryEntry {
   id: string;
@@ -152,7 +157,7 @@ export async function GET(request: NextRequest) {
     // Get associated users for contact info
     const userIds = members
       .filter(m => m.userId)
-      .map(m => m.userId);
+      .map(m => m.userId!.toString());
 
     const users = await User.find({ _id: { $in: userIds } })
       .select('_id profile.phone')
@@ -209,19 +214,27 @@ export async function GET(request: NextRequest) {
       return entry;
     });
 
-    // Get unique first letters for alphabet navigation
-    const allFirstLetters = await FamilyMember.distinct('firstName', {
-      familyId,
-      isDeleted: false,
-      status: ContentStatus.APPROVED,
-      ...(!includeDeceased ? { isDeceased: false } : {}),
-    });
+    // Get unique first letters for alphabet navigation (cached)
+    const alphabetCacheKey = CacheKeys.alphabetIndex(familyId);
+    let alphabetIndex = memberCache.get<string[]>(alphabetCacheKey);
 
-    const alphabetIndex = [...new Set(
-      allFirstLetters
-        .map(name => name.charAt(0).toUpperCase())
-        .filter(char => /[A-Z]/.test(char))
-    )].sort();
+    if (!alphabetIndex) {
+      const allFirstLetters = await FamilyMember.distinct('firstName', {
+        familyId,
+        isDeleted: false,
+        status: ContentStatus.APPROVED,
+        ...(!includeDeceased ? { isDeceased: false } : {}),
+      });
+
+      alphabetIndex = [...new Set(
+        allFirstLetters
+          .map(name => name.charAt(0).toUpperCase())
+          .filter(char => /[A-Z]/.test(char))
+      )].sort();
+
+      // Cache alphabet index (long TTL - changes rarely)
+      memberCache.set(alphabetCacheKey, alphabetIndex, CacheTTL.LONG);
+    }
 
     // Get generation stats
     const generationStats = await FamilyMember.aggregate([

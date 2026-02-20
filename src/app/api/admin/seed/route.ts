@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
       origin: DEMO_FAMILY.origin,
       status: DEMO_FAMILY.status,
       visibility: DEMO_FAMILY.visibility,
-      createdBy: new Types.ObjectId(user._id),
+      createdBy: user._id.toString(),
       contactDetails: {
         email: 'demo@familysite.com',
       },
@@ -205,12 +205,12 @@ export async function POST(request: NextRequest) {
     const family = await Family.create(familyData) as AnyDoc;
 
     // Update admin user with family
-    demoAdmin.familyId = family._id;
+    demoAdmin.familyId = family._id.toString();
     await demoAdmin.save();
 
     // Create site settings for family
     await SiteSettings.create({
-      familyId: family._id,
+      familyId: family._id.toString(),
       siteName: DEMO_FAMILY.name,
       siteDescription: DEMO_FAMILY.description,
       primaryColor: '#f59e0b',
@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
         emailOnMention: true,
         emailDigestFrequency: 'weekly',
       },
-      updatedBy: new Types.ObjectId(user._id),
+      updatedBy: user._id,
     });
 
     // Create family members
@@ -257,15 +257,15 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < DEMO_MEMBERS.length; i++) {
       const memberData = DEMO_MEMBERS[i];
       const member = await FamilyMember.create({
-        familyId: family._id,
+        familyId: family._id.toString(),
         ...memberData,
         status: ContentStatus.APPROVED,
         role: i === 0 ? 'admin' : 'member',
         position: { x: i * 100, y: memberData.generation * 150, level: memberData.generation },
         lineage: [],
         childrenIds: [],
-        createdBy: new Types.ObjectId(user._id),
-      });
+        createdBy: user._id.toString(),
+      }) as AnyDoc;
       createdMembers.push(member._id);
     }
 
@@ -283,30 +283,28 @@ export async function POST(request: NextRequest) {
     // Create demo events
     for (const eventData of DEMO_EVENTS) {
       await Event.create({
-        familyId: family._id,
+        familyId: family._id.toString(),
         ...eventData,
         status: ContentStatus.APPROVED,
         visibility: VisibilityStatus.FAMILY_ONLY,
-        organizers: [robert],
+        organizers: [robert.toString()],
         attendees: [],
-        createdBy: new Types.ObjectId(user._id),
+        createdBy: user._id.toString(),
       });
     }
 
     // Create demo news
     for (const newsData of DEMO_NEWS) {
-      await Entity.create({
-        familyId: family._id,
+      const entityData = {
+        familyId: family._id.toString(),
         entityType: EntityType.NEWS,
         title: newsData.title,
-        content: newsData.content,
-        isPinned: newsData.isPinned,
+        description: newsData.content,
         status: ContentStatus.APPROVED,
         visibility: VisibilityStatus.FAMILY_ONLY,
-        publishedAt: new Date(),
-        viewCount: 0,
-        createdBy: new Types.ObjectId(user._id),
-      });
+        createdBy: user._id.toString(),
+      };
+      await Entity.create(entityData);
     }
 
     // Update family stats
@@ -456,11 +454,12 @@ export async function GET(request: NextRequest) {
     };
 
     if (demoFamily) {
+      const demoFamilyId = demoFamily._id.toString();
       const demoStats = {
-        familyId: demoFamily._id.toString(),
-        members: await FamilyMember.countDocuments({ familyId: demoFamily._id }),
-        entities: await Entity.countDocuments({ familyId: demoFamily._id }),
-        events: await Event.countDocuments({ familyId: demoFamily._id }),
+        familyId: demoFamilyId,
+        members: await FamilyMember.countDocuments({ familyId: demoFamilyId }),
+        entities: await Entity.countDocuments({ familyId: demoFamilyId }),
+        events: await Event.countDocuments({ familyId: demoFamilyId }),
       };
       return successResponse({ ...stats, demo: demoStats });
     }

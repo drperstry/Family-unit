@@ -17,6 +17,11 @@ import {
   notFoundResponse,
   isValidObjectId,
 } from '@/lib/utils';
+import {
+  familyCache,
+  CacheKeys,
+  CacheTTL,
+} from '@/lib/cache';
 
 // GET /api/dashboard - Get dashboard statistics
 export async function GET(request: NextRequest) {
@@ -53,6 +58,13 @@ export async function GET(request: NextRequest) {
 
     if (!canAccess) {
       return forbiddenResponse('You do not have access to this dashboard');
+    }
+
+    // Check cache for quick stats (short TTL since dashboard data changes)
+    const statsCacheKey = CacheKeys.quickStats(familyId);
+    const cachedStats = familyCache.get<object>(statsCacheKey);
+    if (cachedStats) {
+      return successResponse(cachedStats);
     }
 
     // Get date ranges
@@ -173,7 +185,7 @@ export async function GET(request: NextRequest) {
     const membersChange = calculateChange(membersLastMonth, membersPrevMonth);
     const contentChange = calculateChange(contentLastMonth, contentPrevMonth);
 
-    return successResponse({
+    const dashboardData = {
       family: {
         id: family._id,
         name: family.name,
@@ -229,7 +241,12 @@ export async function GET(request: NextRequest) {
           value: item.count,
         })),
       },
-    });
+    };
+
+    // Cache for short duration (1 minute) since dashboard data changes frequently
+    familyCache.set(statsCacheKey, dashboardData, CacheTTL.SHORT);
+
+    return successResponse(dashboardData);
   } catch (error) {
     console.error('Dashboard error:', error);
     return errorResponse('Failed to get dashboard data', 500);

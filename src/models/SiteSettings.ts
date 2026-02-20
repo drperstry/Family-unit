@@ -12,6 +12,76 @@ export interface SiteSettingsDocument extends Document {
   accentColor?: string;
   fontFamily?: string;
 
+  // Hero Section (Landing Page)
+  hero: {
+    title?: string;
+    subtitle?: string;
+    description?: string;
+    backgroundImage?: string;
+    backgroundVideo?: string; // YouTube video URL or direct video URL
+    showVideo: boolean;
+    ctaText?: string;
+    ctaLink?: string;
+    secondaryCtaText?: string;
+    secondaryCtaLink?: string;
+  };
+
+  // About Section
+  about: {
+    title?: string;
+    description?: string;
+    image?: string;
+    features: Array<{
+      icon?: string;
+      title: string;
+      description: string;
+    }>;
+  };
+
+  // Achievements/Stats Section
+  achievements: Array<{
+    icon?: string;
+    value: number;
+    label: string;
+    suffix?: string; // e.g., "+", "%"
+  }>;
+
+  // Services/Offerings Section
+  services: Array<{
+    icon?: string;
+    title: string;
+    description: string;
+    color?: string;
+    link?: string;
+  }>;
+
+  // Board Members/Leadership Section
+  boardMembers: Array<{
+    name: string;
+    position: string;
+    image?: string;
+    bio?: string;
+    order: number;
+    socialLinks?: {
+      linkedin?: string;
+      twitter?: string;
+      email?: string;
+    };
+  }>;
+
+  // Media/Videos Section
+  media: {
+    featuredVideos: Array<{
+      title: string;
+      description?: string;
+      youtubeUrl?: string;
+      thumbnailUrl?: string;
+      order: number;
+    }>;
+    youtubeChannelUrl?: string;
+    showYoutubeSection: boolean;
+  };
+
   // Content Settings
   aboutContent?: string;
   welcomeMessage?: string;
@@ -189,6 +259,48 @@ const MenuItemSchema = new Schema({
   requiresAuth: { type: Boolean, default: false },
 }, { _id: false });
 
+const AboutFeatureSchema = new Schema({
+  icon: String,
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+}, { _id: true });
+
+const AchievementSchema = new Schema({
+  icon: String,
+  value: { type: Number, required: true },
+  label: { type: String, required: true },
+  suffix: String,
+}, { _id: true });
+
+const ServiceSchema = new Schema({
+  icon: String,
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  color: String,
+  link: String,
+}, { _id: true });
+
+const BoardMemberSchema = new Schema({
+  name: { type: String, required: true },
+  position: { type: String, required: true },
+  image: String,
+  bio: String,
+  order: { type: Number, default: 0 },
+  socialLinks: {
+    linkedin: String,
+    twitter: String,
+    email: String,
+  },
+}, { _id: true });
+
+const FeaturedVideoSchema = new Schema({
+  title: { type: String, required: true },
+  description: String,
+  youtubeUrl: String,
+  thumbnailUrl: String,
+  order: { type: Number, default: 0 },
+}, { _id: true });
+
 const SiteSettingsSchema = new Schema<SiteSettingsDocument>({
   familyId: {
     type: Schema.Types.ObjectId,
@@ -224,6 +336,32 @@ const SiteSettingsSchema = new Schema<SiteSettingsDocument>({
   fontFamily: {
     type: String,
     default: 'Inter',
+  },
+  hero: {
+    title: String,
+    subtitle: String,
+    description: String,
+    backgroundImage: String,
+    backgroundVideo: String,
+    showVideo: { type: Boolean, default: false },
+    ctaText: String,
+    ctaLink: String,
+    secondaryCtaText: String,
+    secondaryCtaLink: String,
+  },
+  about: {
+    title: String,
+    description: String,
+    image: String,
+    features: [AboutFeatureSchema],
+  },
+  achievements: [AchievementSchema],
+  services: [ServiceSchema],
+  boardMembers: [BoardMemberSchema],
+  media: {
+    featuredVideos: [FeaturedVideoSchema],
+    youtubeChannelUrl: String,
+    showYoutubeSection: { type: Boolean, default: false },
   },
   aboutContent: {
     type: String,

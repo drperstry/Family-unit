@@ -1,25 +1,23 @@
 import connectDB from './db';
 import { SystemSettings, SystemSettingsDocument } from '@/models/SystemSettings';
 import { SiteSettings, SiteSettingsDocument } from '@/models/SiteSettings';
-
-// Cache for system settings
-let systemSettingsCache: SystemSettingsDocument | null = null;
-let systemSettingsCacheTime = 0;
-const SYSTEM_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-// Cache for site settings (per family)
-const siteSettingsCache = new Map<string, { settings: SiteSettingsDocument; time: number }>();
-const SITE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+import {
+  settingsCache,
+  CacheKeys,
+  CacheTTL,
+  invalidateSettingsCache as invalidateCache,
+} from './cache';
 
 /**
  * Get system-wide settings with caching
  */
 export async function getSystemSettings(): Promise<SystemSettingsDocument> {
-  const now = Date.now();
+  const cacheKey = CacheKeys.systemSettings();
 
-  // Return cached settings if still valid
-  if (systemSettingsCache && now - systemSettingsCacheTime < SYSTEM_CACHE_TTL) {
-    return systemSettingsCache;
+  // Try cache first
+  const cached = settingsCache.get<SystemSettingsDocument>(cacheKey);
+  if (cached) {
+    return cached;
   }
 
   await connectDB();
@@ -30,8 +28,8 @@ export async function getSystemSettings(): Promise<SystemSettingsDocument> {
     settings = await SystemSettings.create({});
   }
 
-  systemSettingsCache = settings;
-  systemSettingsCacheTime = now;
+  // Cache for medium duration
+  settingsCache.set(cacheKey, settings, CacheTTL.MEDIUM);
 
   return settings;
 }
@@ -40,20 +38,19 @@ export async function getSystemSettings(): Promise<SystemSettingsDocument> {
  * Clear system settings cache (call after updates)
  */
 export function clearSystemSettingsCache(): void {
-  systemSettingsCache = null;
-  systemSettingsCacheTime = 0;
+  invalidateCache();
 }
 
 /**
  * Get site settings for a specific family with caching
  */
 export async function getSiteSettings(familyId: string): Promise<SiteSettingsDocument | null> {
-  const now = Date.now();
-  const cached = siteSettingsCache.get(familyId);
+  const cacheKey = CacheKeys.siteSettings(familyId);
 
-  // Return cached settings if still valid
-  if (cached && now - cached.time < SITE_CACHE_TTL) {
-    return cached.settings;
+  // Try cache first
+  const cached = settingsCache.get<SiteSettingsDocument>(cacheKey);
+  if (cached) {
+    return cached;
   }
 
   await connectDB();
@@ -61,7 +58,8 @@ export async function getSiteSettings(familyId: string): Promise<SiteSettingsDoc
   const settings = await SiteSettings.findOne({ familyId });
 
   if (settings) {
-    siteSettingsCache.set(familyId, { settings, time: now });
+    // Cache for medium duration
+    settingsCache.set(cacheKey, settings, CacheTTL.MEDIUM);
   }
 
   return settings;
@@ -71,11 +69,7 @@ export async function getSiteSettings(familyId: string): Promise<SiteSettingsDoc
  * Clear site settings cache for a specific family (call after updates)
  */
 export function clearSiteSettingsCache(familyId?: string): void {
-  if (familyId) {
-    siteSettingsCache.delete(familyId);
-  } else {
-    siteSettingsCache.clear();
-  }
+  invalidateCache(familyId);
 }
 
 // ============== Configuration Helpers ==============

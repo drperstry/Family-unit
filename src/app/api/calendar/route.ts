@@ -13,6 +13,11 @@ import {
   notFoundResponse,
   isValidObjectId,
 } from '@/lib/utils';
+import {
+  contentCache,
+  CacheKeys,
+  CacheTTL,
+} from '@/lib/cache';
 
 interface CalendarEvent {
   id: string;
@@ -63,6 +68,13 @@ export async function GET(request: NextRequest) {
 
     if (!canAccess) {
       return forbiddenResponse('You do not have access to this family');
+    }
+
+    // Try cache for birthday/calendar data
+    const cacheKey = CacheKeys.birthdays(familyId, month ? parseInt(month, 10) : undefined);
+    const cached = contentCache.get<object>(cacheKey);
+    if (cached) {
+      return successResponse(cached);
     }
 
     const now = new Date();
@@ -220,7 +232,7 @@ export async function GET(request: NextRequest) {
       events: calendarEvents.filter(e => e.type === 'event').length,
     };
 
-    return successResponse({
+    const calendarData = {
       events: calendarEvents,
       stats,
       filters: {
@@ -229,7 +241,12 @@ export async function GET(request: NextRequest) {
         type: type || 'all',
         upcomingDays,
       },
-    });
+    };
+
+    // Cache calendar data (medium TTL - birthdays don't change often)
+    contentCache.set(cacheKey, calendarData, CacheTTL.MEDIUM);
+
+    return successResponse(calendarData);
   } catch (error) {
     console.error('Calendar error:', error);
     return errorResponse('Failed to get calendar events', 500);

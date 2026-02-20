@@ -12,6 +12,12 @@ import {
   notFoundResponse,
   isValidObjectId,
 } from '@/lib/utils';
+import {
+  settingsCache,
+  CacheKeys,
+  CacheTTL,
+  invalidateSettingsCache,
+} from '@/lib/cache';
 
 // GET /api/settings - Get site settings for a family
 export async function GET(request: NextRequest) {
@@ -44,6 +50,20 @@ export async function GET(request: NextRequest) {
       return forbiddenResponse('You do not have access to this family');
     }
 
+    // Non-admins get limited settings
+    const isFamilyMember = user?.familyId === familyId;
+    const isAdmin = user?.role === UserRole.SYSTEM_ADMIN ||
+      (user?.role === UserRole.FAMILY_ADMIN && isFamilyMember);
+
+    // Try to get from cache for non-admin requests
+    const cacheKey = CacheKeys.siteSettings(familyId);
+    if (!isAdmin) {
+      const cached = settingsCache.get<object>(cacheKey + ':public');
+      if (cached) {
+        return successResponse(cached);
+      }
+    }
+
     // Get or create settings
     let settings = await SiteSettings.findOne({ familyId });
 
@@ -54,11 +74,6 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Non-admins get limited settings
-    const isFamilyMember = user?.familyId === familyId;
-    const isAdmin = user?.role === UserRole.SYSTEM_ADMIN ||
-      (user?.role === UserRole.FAMILY_ADMIN && isFamilyMember);
-
     if (!isAdmin) {
       // Return only public-facing settings
       const publicSettings = {
@@ -68,14 +83,32 @@ export async function GET(request: NextRequest) {
         favicon: settings.favicon,
         primaryColor: settings.primaryColor,
         secondaryColor: settings.secondaryColor,
+        accentColor: settings.accentColor,
+        fontFamily: settings.fontFamily,
+        hero: settings.hero,
+        about: settings.about,
+        achievements: settings.achievements,
+        services: settings.services,
+        boardMembers: settings.boardMembers,
+        media: settings.media,
         aboutContent: settings.aboutContent,
         welcomeMessage: settings.welcomeMessage,
         footerText: settings.footerText,
+        copyrightText: settings.copyrightText,
         features: settings.features,
         socialLinks: settings.socialLinks,
         seo: settings.seo,
+        navigation: settings.navigation,
+        contact: {
+          email: settings.contact?.email,
+          phone: settings.contact?.phone,
+          address: settings.contact?.address,
+          showContactForm: settings.contact?.showContactForm,
+        },
         customPages: settings.customPages?.filter(p => p.isPublished),
       };
+      // Cache public settings
+      settingsCache.set(cacheKey + ':public', publicSettings, CacheTTL.MEDIUM);
       return successResponse(publicSettings);
     }
 
@@ -106,21 +139,57 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     const {
+      // General Settings
       siteName,
       siteDescription,
       logo,
       favicon,
       primaryColor,
       secondaryColor,
+      accentColor,
+      fontFamily,
+      // Hero Section
+      hero,
+      // About Section
+      about,
+      // Achievements
+      achievements,
+      // Services
+      services,
+      // Board Members
+      boardMembers,
+      // Media/Videos
+      media,
+      // Content Settings
       aboutContent,
       welcomeMessage,
       footerText,
+      copyrightText,
+      // Feature Toggles
       features,
+      // Privacy
       privacy,
+      // Notifications
       notifications,
+      // Social Links
       socialLinks,
+      // SEO
       seo,
+      // Content Limits
+      contentLimits,
+      // Display
+      display,
+      // Family Tree Settings
+      familyTreeSettings,
+      // Invite Settings
+      inviteSettings,
+      // Custom Pages
       customPages,
+      // Navigation
+      navigation,
+      // Contact
+      contact,
+      // Maintenance
       maintenance,
     } = body;
 
@@ -130,10 +199,6 @@ export async function PUT(request: NextRequest) {
     if (!family) {
       return notFoundResponse('Family');
     }
-
-    // SECURITY FIX: Removed tautology bug (user.familyId !== user.familyId always false)
-    // Family admins can only update settings for their own family
-    // This is already enforced by using user.familyId for the settings lookup below
 
     // Get or create settings
     let settings = await SiteSettings.findOne({ familyId: user.familyId });
@@ -145,17 +210,61 @@ export async function PUT(request: NextRequest) {
       });
     }
 
-    // Update fields
+    // Update general settings
     if (siteName !== undefined) settings.siteName = siteName;
     if (siteDescription !== undefined) settings.siteDescription = siteDescription;
     if (logo !== undefined) settings.logo = logo;
     if (favicon !== undefined) settings.favicon = favicon;
     if (primaryColor !== undefined) settings.primaryColor = primaryColor;
     if (secondaryColor !== undefined) settings.secondaryColor = secondaryColor;
+    if (accentColor !== undefined) settings.accentColor = accentColor;
+    if (fontFamily !== undefined) settings.fontFamily = fontFamily;
+
+    // Update hero section
+    if (hero !== undefined) {
+      settings.hero = { ...settings.hero, ...hero };
+    }
+
+    // Update about section
+    if (about !== undefined) {
+      settings.about = {
+        ...settings.about,
+        ...about,
+        features: about.features !== undefined ? about.features : settings.about?.features,
+      };
+    }
+
+    // Update achievements (replace entire array)
+    if (achievements !== undefined) {
+      settings.achievements = achievements;
+    }
+
+    // Update services (replace entire array)
+    if (services !== undefined) {
+      settings.services = services;
+    }
+
+    // Update board members (replace entire array)
+    if (boardMembers !== undefined) {
+      settings.boardMembers = boardMembers;
+    }
+
+    // Update media section
+    if (media !== undefined) {
+      settings.media = {
+        ...settings.media,
+        ...media,
+        featuredVideos: media.featuredVideos !== undefined ? media.featuredVideos : settings.media?.featuredVideos,
+      };
+    }
+
+    // Update content settings
     if (aboutContent !== undefined) settings.aboutContent = aboutContent;
     if (welcomeMessage !== undefined) settings.welcomeMessage = welcomeMessage;
     if (footerText !== undefined) settings.footerText = footerText;
+    if (copyrightText !== undefined) settings.copyrightText = copyrightText;
 
+    // Update nested objects with merge
     if (features !== undefined) {
       settings.features = { ...settings.features, ...features };
     }
@@ -171,6 +280,34 @@ export async function PUT(request: NextRequest) {
     if (seo !== undefined) {
       settings.seo = { ...settings.seo, ...seo };
     }
+    if (contentLimits !== undefined) {
+      settings.contentLimits = { ...settings.contentLimits, ...contentLimits };
+    }
+    if (display !== undefined) {
+      settings.display = { ...settings.display, ...display };
+    }
+    if (familyTreeSettings !== undefined) {
+      settings.familyTreeSettings = { ...settings.familyTreeSettings, ...familyTreeSettings };
+    }
+    if (inviteSettings !== undefined) {
+      settings.inviteSettings = { ...settings.inviteSettings, ...inviteSettings };
+    }
+    if (navigation !== undefined) {
+      settings.navigation = {
+        ...settings.navigation,
+        ...navigation,
+        menuItems: navigation.menuItems !== undefined ? navigation.menuItems : settings.navigation?.menuItems,
+      };
+    }
+    if (contact !== undefined) {
+      settings.contact = {
+        ...settings.contact,
+        ...contact,
+        contactFormRecipients: contact.contactFormRecipients !== undefined
+          ? contact.contactFormRecipients
+          : settings.contact?.contactFormRecipients,
+      };
+    }
     if (customPages !== undefined) {
       settings.customPages = customPages;
     }
@@ -180,6 +317,9 @@ export async function PUT(request: NextRequest) {
 
     settings.updatedBy = user._id as any;
     await settings.save();
+
+    // Invalidate cache
+    invalidateSettingsCache(user.familyId);
 
     return successResponse(settings, 'Settings updated successfully');
   } catch (error) {

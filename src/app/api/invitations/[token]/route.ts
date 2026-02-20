@@ -147,7 +147,7 @@ export async function POST(
 
       // If user exists without family, update them
       if (!existingUser.familyId) {
-        existingUser.familyId = family._id;
+        existingUser.familyId = family._id.toString();
         existingUser.role = invitation.role === 'admin' ? UserRole.FAMILY_ADMIN : UserRole.FAMILY_MEMBER;
         await existingUser.save();
 
@@ -182,7 +182,7 @@ export async function POST(
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       role: invitation.role === 'admin' ? UserRole.FAMILY_ADMIN : UserRole.FAMILY_MEMBER,
-      familyId: family._id,
+      familyId: family._id.toString(),
       isEmailVerified: true, // Email verified via invitation
       preferences: {
         theme: 'system',
@@ -199,12 +199,12 @@ export async function POST(
         gender: gender as Gender,
         bio: bio?.trim(),
       },
-    });
+    }) as { _id: { toString(): string }; email: string; role: UserRole; firstName: string; lastName: string; toObject(): Record<string, unknown> };
 
     // Create family member record
     await FamilyMember.create({
-      familyId: family._id,
-      userId: user._id,
+      familyId: family._id.toString(),
+      userId: user._id.toString(),
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       gender: gender as Gender || Gender.OTHER,
@@ -217,13 +217,13 @@ export async function POST(
       lineage: [],
       childrenIds: [],
       joinedAt: new Date(),
-      createdBy: invitation.invitedBy,
+      createdBy: invitation.invitedBy?.toString(),
     });
 
     // Update invitation
     invitation.status = 'accepted';
     invitation.acceptedAt = new Date();
-    invitation.acceptedBy = user._id;
+    invitation.acceptedBy = user._id as unknown as typeof invitation.acceptedBy;
     await invitation.save();
 
     // Update family stats
@@ -260,8 +260,16 @@ export async function POST(
     });
 
     // Audit
+    const safeUser = {
+      _id: user._id.toString(),
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      preferences: { theme: 'system' as const, language: 'en', notifications: { email: true, push: true, approvalAlerts: true, familyUpdates: true } },
+    };
     await audit.memberAdd(
-      { user: { ...user.toObject(), _id: user._id.toString() }, request },
+      { user: safeUser, request },
       family._id.toString(),
       user._id.toString(),
       `${firstName} ${lastName}`
